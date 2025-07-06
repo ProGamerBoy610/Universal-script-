@@ -13,14 +13,6 @@ if existingGui then
     wait(0.1) -- Small delay to ensure cleanup
 end
 
--- UI Stock/Status Variables
-local UIStock = {
-    online = true,
-    version = "v1.2.0",
-    status = "Operational",
-    users = math.random(150, 300)
-}
-
 -- Create ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DropdownGUI"
@@ -84,92 +76,14 @@ local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 8)
 toggleCorner.Parent = toggleButton
 
--- Content Frame (for buttons and UI stock)
+-- Content Frame (for buttons)
 local contentFrame = Instance.new("Frame")
 contentFrame.Name = "Content"
-contentFrame.Size = UDim2.new(1, 0, 0, 160)
+contentFrame.Size = UDim2.new(1, 0, 0, 130)
 contentFrame.Position = UDim2.new(0, 0, 0, 50)
 contentFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 contentFrame.BorderSizePixel = 0
 contentFrame.Parent = mainFrame
-
--- UI Stock Frame
-local stockFrame = Instance.new("Frame")
-stockFrame.Name = "StockFrame"
-stockFrame.Size = UDim2.new(1, -20, 0, 80)
-stockFrame.Position = UDim2.new(0, 10, 0, 50)
-stockFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-stockFrame.BorderSizePixel = 0
-stockFrame.Parent = contentFrame
-
-local stockCorner = Instance.new("UICorner")
-stockCorner.CornerRadius = UDim.new(0, 8)
-stockCorner.Parent = stockFrame
-
--- Status Indicator
-local statusIndicator = Instance.new("Frame")
-statusIndicator.Name = "StatusIndicator"
-statusIndicator.Size = UDim2.new(0, 12, 0, 12)
-statusIndicator.Position = UDim2.new(0, 10, 0, 8)
-statusIndicator.BackgroundColor3 = UIStock.online and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-statusIndicator.BorderSizePixel = 0
-statusIndicator.Parent = stockFrame
-
-local statusCorner = Instance.new("UICorner")
-statusCorner.CornerRadius = UDim.new(0, 6)
-statusCorner.Parent = statusIndicator
-
--- Status Text
-local statusText = Instance.new("TextLabel")
-statusText.Name = "StatusText"
-statusText.Size = UDim2.new(1, -35, 0, 20)
-statusText.Position = UDim2.new(0, 30, 0, 5)
-statusText.BackgroundTransparency = 1
-statusText.Text = "Status: " .. UIStock.status
-statusText.TextColor3 = Color3.fromRGB(255, 255, 255)
-statusText.TextScaled = true
-statusText.Font = Enum.Font.Gotham
-statusText.TextXAlignment = Enum.TextXAlignment.Left
-statusText.Parent = stockFrame
-
--- Version Text
-local versionText = Instance.new("TextLabel")
-versionText.Name = "VersionText"
-versionText.Size = UDim2.new(0.5, -10, 0, 20)
-versionText.Position = UDim2.new(0, 10, 0, 25)
-versionText.BackgroundTransparency = 1
-versionText.Text = "Version: " .. UIStock.version
-versionText.TextColor3 = Color3.fromRGB(200, 200, 200)
-versionText.TextScaled = true
-versionText.Font = Enum.Font.Gotham
-versionText.TextXAlignment = Enum.TextXAlignment.Left
-versionText.Parent = stockFrame
-
--- Users Text
-local usersText = Instance.new("TextLabel")
-usersText.Name = "UsersText"
-usersText.Size = UDim2.new(0.5, -10, 0, 20)
-usersText.Position = UDim2.new(0.5, 0, 0, 25)
-usersText.BackgroundTransparency = 1
-usersText.Text = "Users: " .. UIStock.users
-usersText.TextColor3 = Color3.fromRGB(200, 200, 200)
-usersText.TextScaled = true
-usersText.Font = Enum.Font.Gotham
-usersText.TextXAlignment = Enum.TextXAlignment.Left
-usersText.Parent = stockFrame
-
--- Server Info
-local serverInfo = Instance.new("TextLabel")
-serverInfo.Name = "ServerInfo"
-serverInfo.Size = UDim2.new(1, -20, 0, 20)
-serverInfo.Position = UDim2.new(0, 10, 0, 50)
-serverInfo.BackgroundTransparency = 1
-serverInfo.Text = "Server: " .. game.JobId:sub(1, 8) .. "..."
-serverInfo.TextColor3 = Color3.fromRGB(150, 150, 150)
-serverInfo.TextScaled = true
-serverInfo.Font = Enum.Font.Gotham
-serverInfo.TextXAlignment = Enum.TextXAlignment.Left
-serverInfo.Parent = stockFrame
 
 -- Subtitle Label (By @P_G_B)
 local subtitleLabel = Instance.new("TextLabel")
@@ -189,6 +103,17 @@ local FlingEnabled = false
 local Targets = {"All"}
 local Player = Players.LocalPlayer
 local AllBool = false
+
+-- Callback function for Auto Fling button
+local function onAutoFlingCallback(enabled)
+    if enabled then
+        print("Auto Fling enabled!")
+        -- You can add custom logic here when auto fling is enabled
+    else
+        print("Auto Fling disabled!")
+        -- You can add custom logic here when auto fling is disabled
+    end
+end
 
 local GetPlayer = function(Name)
     Name = Name:lower()
@@ -407,37 +332,124 @@ local ExecuteFling = function()
     end
 end
 
--- Create the single button
-local button = Instance.new("TextButton")
-button.Name = "FlingButton"
-button.Size = UDim2.new(1, -20, 0, 35)
-button.Position = UDim2.new(0, 10, 0, 5)
-button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-button.BorderSizePixel = 0
-button.Text = "Fling All"
-button.TextColor3 = Color3.fromRGB(255, 255, 255)
-button.TextScaled = true
-button.Font = Enum.Font.Gotham
-button.Parent = contentFrame
+-- Button configurations (only 2 buttons)
+local buttonConfigs = {
+    {name = "Fling All", color = Color3.fromRGB(50, 50, 50), action = function()
+        ExecuteFling()
+    end},
+    {name = "Auto Fling", color = Color3.fromRGB(45, 45, 45), isToggle = true, action = function()
+        FlingEnabled = not FlingEnabled
+        
+        -- Call the callback function
+        onAutoFlingCallback(FlingEnabled)
+        
+        if FlingEnabled then
+            spawn(function()
+                while FlingEnabled do
+                    ExecuteFling()
+                    wait(0.1)
+                end
+            end)
+        end
+    end}
+}
 
-local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 8)
-buttonCorner.Parent = button
-
--- Button click functionality
-button.MouseButton1Click:Connect(function()
-    ExecuteFling()
+-- Create buttons
+for i, config in ipairs(buttonConfigs) do
+    local button = Instance.new("TextButton")
+    button.Name = "Button" .. i
+    button.Size = UDim2.new(1, -20, 0, 35)
+    button.Position = UDim2.new(0, 10, 0, (i-1) * 40 + 5)
+    button.BackgroundColor3 = config.color
+    button.BorderSizePixel = 0
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextScaled = true
+    button.Font = Enum.Font.Gotham
+    button.Parent = contentFrame
     
-    -- Visual feedback
-    local originalColor = button.BackgroundColor3
-    local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 8)
+    buttonCorner.Parent = button
     
-    TweenService:Create(button, tweenInfo, {BackgroundColor3 = Color3.fromRGB(80, 80, 80)}):Play()
-    
-    wait(0.1)
-    
-    TweenService:Create(button, tweenInfo, {BackgroundColor3 = originalColor}):Play()
-end)
+    -- Handle toggle buttons
+    if config.isToggle then
+        local toggleState = false
+        
+        -- Create checkbox icon
+        local checkboxIcon = Instance.new("TextLabel")
+        checkboxIcon.Name = "CheckboxIcon"
+        checkboxIcon.Size = UDim2.new(0, 20, 0, 20)
+        checkboxIcon.Position = UDim2.new(0, 8, 0.5, -10)
+        checkboxIcon.BackgroundTransparency = 1
+        checkboxIcon.Text = "☐"
+        checkboxIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
+        checkboxIcon.TextScaled = true
+        checkboxIcon.Font = Enum.Font.GothamBold
+        checkboxIcon.Parent = button
+        
+        -- Create text label for button name
+        local buttonText = Instance.new("TextLabel")
+        buttonText.Name = "ButtonText"
+        buttonText.Size = UDim2.new(1, -35, 1, 0)
+        buttonText.Position = UDim2.new(0, 35, 0, 0)
+        buttonText.BackgroundTransparency = 1
+        buttonText.Text = config.name
+        buttonText.TextColor3 = Color3.fromRGB(255, 255, 255)
+        buttonText.TextScaled = true
+        buttonText.Font = Enum.Font.Gotham
+        buttonText.TextXAlignment = Enum.TextXAlignment.Left
+        buttonText.Parent = button
+        
+        -- Remove the original button text
+        button.Text = ""
+        
+        button.MouseButton1Click:Connect(function()
+            toggleState = not toggleState
+            
+            if toggleState then
+                checkboxIcon.Text = "✓"
+                checkboxIcon.TextColor3 = Color3.fromRGB(255, 85, 85)
+                button.BackgroundColor3 = config.color
+            else
+                checkboxIcon.Text = "☐"
+                checkboxIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
+                button.BackgroundColor3 = config.color
+            end
+            
+            -- Execute the button's action
+            if config.action then
+                local success, error = pcall(config.action)
+                if not success then
+                    warn("Error executing action for " .. config.name .. ": " .. tostring(error))
+                end
+            end
+        end)
+        
+    -- Handle regular buttons
+    else
+        button.Text = config.name
+        
+        button.MouseButton1Click:Connect(function()
+            -- Execute the button's action
+            if config.action then
+                local success, error = pcall(config.action)
+                if not success then
+                    warn("Error executing action for " .. config.name .. ": " .. tostring(error))
+                end
+            end
+            
+            -- Visual feedback
+            local originalColor = button.BackgroundColor3
+            local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            
+            TweenService:Create(button, tweenInfo, {BackgroundColor3 = Color3.fromRGB(80, 80, 80)}):Play()
+            
+            wait(0.1)
+            
+            TweenService:Create(button, tweenInfo, {BackgroundColor3 = originalColor}):Play()
+        end)
+    end
+end
 
 -- Dropdown functionality
 local isOpen = false
@@ -448,7 +460,7 @@ local function toggleDropdown()
     
     local targetSize, targetRotation
     if isOpen then
-        targetSize = UDim2.new(0, 250, 0, 210)
+        targetSize = UDim2.new(0, 250, 0, 180)
         targetRotation = 180
     else
         targetSize = UDim2.new(0, 250, 0, 50)
@@ -483,6 +495,7 @@ headerFrame.InputBegan:Connect(function(input)
         dragToggle = true
         dragStart = input.Position
         startPos = mainFrame.Position
+        
         input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
                 dragToggle = false
@@ -491,20 +504,19 @@ headerFrame.InputBegan:Connect(function(input)
     end
 end)
 
-headerFrame.InputChanged:Connect(function(input)
-    if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        if dragToggle then
-            updateInput(input)
-        end
-    end
-end)
-
 UserInputService.InputChanged:Connect(function(input)
-    if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
         if dragToggle then
             updateInput(input)
         end
     end
 end)
 
-print("Fryzer Hub loaded successfully!")
+-- Mobile touch support for dragging
+headerFrame.TouchMoved:Connect(function(touch, gameProcessed)
+    if dragToggle then
+        updateInput(touch)
+    end
+end)
+
+print("Fryzer Hub GUI loaded successfully! (Fling script integrated)")
