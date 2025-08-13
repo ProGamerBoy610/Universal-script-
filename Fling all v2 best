@@ -1,138 +1,427 @@
-BTab:Paragraph({
-    Title = "It spawn the items to the player",
-    Content = "Hello " .. LocalPlayer.DisplayName .. "! You're running WindUI successfully."
-})
+-- Compact Roblox Player List GUI with Fling Function
+-- Compatible with most Roblox executors
 
-BTab:Paragraph({
-    Title = "If not working try again pressing the button over and over",
-    Content = "Items will be teleported to your current position."
-})
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
 
-local folder = workspace:FindFirstChild("Items")
-if not folder then
-    warn("Folder 'Items' not found in workspace.")
-    return
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "PlayerListGui"
+screenGui.Parent = game:GetService("CoreGui")
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Main Frame (small, compact)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Parent = screenGui
+mainFrame.Size = UDim2.new(0, 200, 0, 250) -- Much smaller
+mainFrame.Position = UDim2.new(0, 20, 0.5, -125)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+mainFrame.BorderSizePixel = 0
+
+-- Corner rounding
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 8)
+mainCorner.Parent = mainFrame
+
+-- Border stroke
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(70, 70, 80)
+stroke.Thickness = 2
+stroke.Parent = mainFrame
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Parent = mainFrame
+title.Size = UDim2.new(1, -30, 0, 20)
+title.Position = UDim2.new(0, 10, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "PLAYER FLING"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+
+-- Subtitle
+local subtitle = Instance.new("TextLabel")
+subtitle.Name = "Subtitle"
+subtitle.Parent = mainFrame
+subtitle.Size = UDim2.new(1, -30, 0, 12)
+subtitle.Position = UDim2.new(0, 10, 0, 25)
+subtitle.BackgroundTransparency = 1
+subtitle.Text = "Click to fling players"
+subtitle.TextColor3 = Color3.fromRGB(150, 150, 160)
+subtitle.TextScaled = true
+subtitle.Font = Enum.Font.Gotham
+
+-- Close Button
+local closeButton = Instance.new("TextButton")
+closeButton.Name = "CloseButton"
+closeButton.Parent = mainFrame
+closeButton.Size = UDim2.new(0, 18, 0, 18)
+closeButton.Position = UDim2.new(1, -22, 0, 4)
+closeButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+closeButton.Text = "×"
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.TextScaled = true
+closeButton.Font = Enum.Font.GothamBold
+closeButton.BorderSizePixel = 0
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 3)
+closeCorner.Parent = closeButton
+
+-- Scrolling Frame for players
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Name = "PlayerList"
+scrollFrame.Parent = mainFrame
+scrollFrame.Size = UDim2.new(1, -16, 1, -50)
+scrollFrame.Position = UDim2.new(0, 8, 0, 42)
+scrollFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 4
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 110)
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+
+local scrollCorner = Instance.new("UICorner")
+scrollCorner.CornerRadius = UDim.new(0, 6)
+scrollCorner.Parent = scrollFrame
+
+-- List Layout
+local listLayout = Instance.new("UIListLayout")
+listLayout.Parent = scrollFrame
+listLayout.SortOrder = Enum.SortOrder.Name
+listLayout.Padding = UDim.new(0, 3)
+listLayout.FillDirection = Enum.FillDirection.Vertical
+
+-- Message function
+local Message = function(_Title, _Text, Time)
+    game:GetService("StarterGui"):SetCore("SendNotification", {Title = _Title, Text = _Text, Duration = Time})
 end
 
-local selectedModelName = nil
-local modelMap = {}
-local uniqueNames = {}
+-- Fling function (modified to target specific player)
+local SkidFling = function(TargetPlayer)
+    local Character = Player.Character
+    local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+    local RootPart = Humanoid and Humanoid.RootPart
 
--- Temporary support baseplate (optional invisible platform)
-local function createSupportUnder(position)
-    local support = Instance.new("Part")
-    support.Size = Vector3.new(10, 1, 10)
-    support.Anchored = true
-    support.Transparency = 1
-    support.CanCollide = false
-    support.Position = position - Vector3.new(0, 2, 0) -- slightly below player position
-    support.Parent = workspace
-    game:GetService("Debris"):AddItem(support, 5)
-end
+    local TCharacter = TargetPlayer.Character
+    local THumanoid
+    local TRootPart
+    local THead
+    local Accessory
+    local Handle
 
--- Get player position
-local function getPlayerPosition()
-    local character = LocalPlayer.Character
-    if character and character:FindFirstChild("HumanoidRootPart") then
-        return character.HumanoidRootPart.Position
+    if TCharacter:FindFirstChildOfClass("Humanoid") then
+        THumanoid = TCharacter:FindFirstChildOfClass("Humanoid")
     end
-    return Vector3.new(0, 50, 0) -- fallback position
-end
+    if THumanoid and THumanoid.RootPart then
+        TRootPart = THumanoid.RootPart
+    end
+    if TCharacter:FindFirstChild("Head") then
+        THead = TCharacter.Head
+    end
+    if TCharacter:FindFirstChildOfClass("Accessory") then
+        Accessory = TCharacter:FindFirstChildOfClass("Accessory")
+    end
+    if Accessory and Accessory:FindFirstChild("Handle") then
+        Handle = Accessory.Handle
+    end
 
--- Refresh model list
-local function refreshModels()
-    modelMap = {}
-    uniqueNames = {}
-
-    for _, obj in pairs(folder:GetDescendants()) do
-        local model = obj:IsA("Model") and obj or obj:IsA("BasePart") and obj:FindFirstAncestorOfClass("Model")
-        if model and not modelMap[model.Name] then
-            modelMap[model.Name] = {}
-            table.insert(uniqueNames, model.Name)
+    if Character and Humanoid and RootPart then
+        if RootPart.Velocity.Magnitude < 50 then
+            getgenv().OldPos = RootPart.CFrame
         end
-        if model then
-            table.insert(modelMap[model.Name], model)
+        if THumanoid and THumanoid.Sit then
+            return Message("Error Occurred", "Target is sitting", 5)
         end
+        if THead then
+            workspace.CurrentCamera.CameraSubject = THead
+        elseif not THead and Handle then
+            workspace.CurrentCamera.CameraSubject = Handle
+        elseif THumanoid and TRootPart then
+            workspace.CurrentCamera.CameraSubject = THumanoid
+        end
+        if not TCharacter:FindFirstChildWhichIsA("BasePart") then
+            return
+        end
+        
+        local FPos = function(BasePart, Pos, Ang)
+            RootPart.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
+            Character:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
+            RootPart.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
+            RootPart.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+        end
+        
+        local SFBasePart = function(BasePart)
+            local TimeToWait = 2
+            local Time = tick()
+            local Angle = 0
+
+            repeat
+                if RootPart and THumanoid then
+                    if BasePart.Velocity.Magnitude < 50 then
+                        Angle = Angle + 100
+
+                        FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle),0 ,0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(2.25, 1.5, -2.25) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(-2.25, -1.5, 2.25) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection,CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection,CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+                    else
+                        FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, -THumanoid.WalkSpeed), CFrame.Angles(0, 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+                        
+                        FPos(BasePart, CFrame.new(0, 1.5, TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, -TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(0, 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, 1.5, TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5 ,0), CFrame.Angles(math.rad(-90), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
+                        task.wait()
+                    end
+                else
+                    break
+                end
+            until BasePart.Velocity.Magnitude > 500 or BasePart.Parent ~= TargetPlayer.Character or TargetPlayer.Parent ~= Players or not TargetPlayer.Character == TCharacter or THumanoid.Sit or Humanoid.Health <= 0 or tick() > Time + TimeToWait
+        end
+        
+        workspace.FallenPartsDestroyHeight = 0/0
+        
+        local BV = Instance.new("BodyVelocity")
+        BV.Name = "EpixVel"
+        BV.Parent = RootPart
+        BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
+        BV.MaxForce = Vector3.new(1/0, 1/0, 1/0)
+        
+        Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+        
+        if TRootPart and THead then
+            if (TRootPart.CFrame.p - THead.CFrame.p).Magnitude > 5 then
+                SFBasePart(THead)
+            else
+                SFBasePart(TRootPart)
+            end
+        elseif TRootPart and not THead then
+            SFBasePart(TRootPart)
+        elseif not TRootPart and THead then
+            SFBasePart(THead)
+        elseif not TRootPart and not THead and Accessory and Handle then
+            SFBasePart(Handle)
+        else
+            return Message("Error Occurred", "Target is missing everything", 5)
+        end
+        
+        BV:Destroy()
+        Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+        workspace.CurrentCamera.CameraSubject = Humanoid
+        
+        repeat
+            RootPart.CFrame = getgenv().OldPos * CFrame.new(0, .5, 0)
+            Character:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0, .5, 0))
+            Humanoid:ChangeState("GettingUp")
+            table.foreach(Character:GetChildren(), function(_, x)
+                if x:IsA("BasePart") then
+                    x.Velocity, x.RotVelocity = Vector3.new(), Vector3.new()
+                end
+            end)
+            task.wait()
+        until (RootPart.Position - getgenv().OldPos.p).Magnitude < 25
+        workspace.FallenPartsDestroyHeight = getgenv().FPDH
+    else
+        return Message("Error Occurred", "Random error", 5)
     end
 end
 
--- Initial refresh
-refreshModels()
+-- Function to create player entry
+local function createPlayerEntry(player)
+    if player == Player then return end -- Skip local player
+    
+    local playerFrame = Instance.new("Frame")
+    playerFrame.Name = player.Name
+    playerFrame.Size = UDim2.new(1, -8, 0, 30)
+    playerFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 52)
+    playerFrame.BorderSizePixel = 0
+    playerFrame.Parent = scrollFrame
+    
+    local frameCorner = Instance.new("UICorner")
+    frameCorner.CornerRadius = UDim.new(0, 4)
+    frameCorner.Parent = playerFrame
+    
+    -- Player icon (Roblox profile picture)
+    local playerIcon = Instance.new("ImageLabel")
+    playerIcon.Name = "PlayerIcon"
+    playerIcon.Size = UDim2.new(0, 24, 0, 24)
+    playerIcon.Position = UDim2.new(0, 3, 0, 3)
+    playerIcon.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    playerIcon.BorderSizePixel = 0
+    playerIcon.Image = "https://www.roblox.com/headshot-thumbnail/image?userId="..player.UserId.."&width=150&height=150&format=png"
+    playerIcon.Parent = playerFrame
+    
+    local iconCorner = Instance.new("UICorner")
+    iconCorner.CornerRadius = UDim.new(0, 3)
+    iconCorner.Parent = playerIcon
+    
+    -- Player name (shortened for small GUI)
+    local playerName = Instance.new("TextLabel")
+    playerName.Name = "PlayerName"
+    playerName.Size = UDim2.new(1, -75, 1, 0)
+    playerName.Position = UDim2.new(0, 30, 0, 0)
+    playerName.BackgroundTransparency = 1
+    playerName.Text = string.len(player.DisplayName) > 12 and string.sub(player.DisplayName, 1, 12).."..." or player.DisplayName
+    playerName.TextColor3 = Color3.fromRGB(255, 255, 255)
+    playerName.TextScaled = true
+    playerName.Font = Enum.Font.Gotham
+    playerName.TextXAlignment = Enum.TextXAlignment.Left
+    playerName.Parent = playerFrame
+    
+    -- Fling button (smaller)
+    local flingButton = Instance.new("TextButton")
+    flingButton.Name = "FlingButton"
+    flingButton.Size = UDim2.new(0, 40, 0, 20)
+    flingButton.Position = UDim2.new(1, -43, 0, 5)
+    flingButton.BackgroundColor3 = Color3.fromRGB(220, 60, 80)
+    flingButton.Text = "FLING"
+    flingButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    flingButton.TextScaled = true
+    flingButton.Font = Enum.Font.GothamBold
+    flingButton.BorderSizePixel = 0
+    flingButton.Parent = playerFrame
+    
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 3)
+    buttonCorner.Parent = flingButton
+    
+    -- Button click animation and function
+    flingButton.MouseButton1Click:Connect(function()
+        -- Button animation
+        local tween = TweenService:Create(flingButton, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(180, 40, 60)})
+        tween:Play()
+        tween.Completed:Connect(function()
+            local tween2 = TweenService:Create(flingButton, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(220, 60, 80)})
+            tween2:Play()
+        end)
+        
+        -- Execute fling
+        if player.UserId ~= 1414978355 then -- Whitelist check
+            Message("Fling Executed", "Flinging "..player.Name, 3)
+            SkidFling(player)
+        else
+            Message("Error Occurred", "This user is whitelisted! (Owner)", 5)
+        end
+    end)
+end
 
--- Create Dropdown
-local dropdown = BTab:Dropdown({
-    Title = "Select Model",
-    Values = uniqueNames,
-    Value = uniqueNames[1] or nil,
-    Multi = false,
-    AllowNone = false,
-    Callback = function(selected)
-        selectedModelName = selected
-        print("Selected:", selected)
+-- Function to refresh player list
+local function refreshPlayerList()
+    for _, child in pairs(scrollFrame:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
+        end
     end
-})
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        createPlayerEntry(player)
+    end
+    
+    -- Update canvas size
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 6)
+end
 
--- Refresh every 5 seconds
-task.spawn(function()
-    while true do
-        refreshModels()
-        dropdown:SetValues(uniqueNames)
-        task.wait(5)
+-- Player events
+Players.PlayerAdded:Connect(function(player)
+    wait(1) -- Wait for player to fully load
+    createPlayerEntry(player)
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 6)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    if scrollFrame:FindFirstChild(player.Name) then
+        scrollFrame[player.Name]:Destroy()
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 6)
     end
 end)
 
--- Button to move & unanchor models to player
-BTab:Button({
-    Title = "Teleport Items to Me",
-    Desc = "Move selected models to your current position",
-    Callback = function()
-        if not selectedModelName or not modelMap[selectedModelName] then
-            warn("No model selected.")
-            return
-        end
+-- Close button function
+closeButton.MouseButton1Click:Connect(function()
+    -- Close animation
+    local tween = TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 0, 0, 0)})
+    tween:Play()
+    tween.Completed:Connect(function()
+        screenGui:Destroy()
+    end)
+end)
 
-        local playerPosition = getPlayerPosition()
-        local offsetY = 2 -- Start items above player
-        local offsetX = 0
-        local itemCount = 0
+-- Make GUI draggable
+local dragging = false
+local dragInput, mousePos, framePos
+
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        mousePos = input.Position
+        framePos = mainFrame.Position
         
-        for _, model in pairs(modelMap[selectedModelName]) do
-            -- Set PrimaryPart if not already set
-            if not model.PrimaryPart then
-                local primary = model:FindFirstChildWhichIsA("BasePart")
-                if primary then model.PrimaryPart = primary end
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
             end
-
-            if model.PrimaryPart then
-                -- Unanchor parts
-                for _, obj in ipairs(model:GetDescendants()) do
-                    if obj:IsA("BasePart") then
-                        obj.Anchored = false
-                        obj.Massless = false
-                        obj.CanCollide = true
-                    end
-                end
-
-                -- Create support platform below player position
-                createSupportUnder(playerPosition)
-
-                -- Calculate position around player (circular pattern for multiple items)
-                local angle = (itemCount * 60) * math.pi / 180 -- 60 degrees apart
-                local radius = 3 + math.floor(itemCount / 6) * 2 -- Increase radius every 6 items
-                local positionOffset = Vector3.new(
-                    math.cos(angle) * radius,
-                    offsetY,
-                    math.sin(angle) * radius
-                )
-                
-                -- Move model to player position with offset
-                local targetPosition = playerPosition + positionOffset
-                model:SetPrimaryPartCFrame(CFrame.new(targetPosition))
-                
-                itemCount += 1
-            end
-        end
-        
-        print("Teleported " .. itemCount .. " items to player position!")
+        end)
     end
-})
+end)
+
+mainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - mousePos
+        mainFrame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+    end
+end)
+
+-- Initialize player list
+refreshPlayerList()
+
+-- Welcome message
+Message("Player Fling GUI", "Compact GUI loaded successfully!", 3)
+
+-- Update canvas size when layout changes
+listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 6)
+end)
